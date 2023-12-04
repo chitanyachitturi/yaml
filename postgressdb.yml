@@ -1,0 +1,414 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: This template creates RDS database with postgreSQL engine.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Export VPC Stack Name
+          Parameters:
+            - ExportVpcStackName
+      - Label:
+          default: Database Parameters
+          Parameters:
+            - DatabaseInstanceIdentifier
+            - DatabaseName
+            - DatabaseUser
+            - DatabasePassword
+            - DatabaseBackupRetentionPeriod
+            - DatabaseAllocatedStorage
+            - DatabaseInstanceClass
+            - MultiAZDatabase
+
+Parameters:
+  ExportVpcStackName:
+    Description: The name of the vpc stack that exports values
+    Type: String
+
+  DatabaseInstanceIdentifier:
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+    ConstraintDescription: Must begin with a alphabet, can have hypen in middle but not at end or at start. Cna also have numeric charters in middle or end.
+    Default: mypostgreDBInstance
+    Description: Instance identifier name
+    MaxLength: 60
+    MinLength: 1
+    Type: String
+
+  DatabaseName:
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+    ConstraintDescription: Must begin with a alphabet, can have hypen in middle but not at end or at start. Cna also have numeric charters in middle or end.
+    Default: mypostgreDB
+    Description: postgreSQL database name
+    MaxLength: 64
+    MinLength: 1
+    Type: String
+
+  DatabaseUser:
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+    ConstraintDescription: Must begin with a alphabet, can have hypen in middle but not at end or at start. Cna also have numeric charters in middle or end.
+    Default: postgreDB-admin
+    Description: db admin username
+    MaxLength: 128
+    MinLength: 1
+    NoEcho: false
+    Type: String
+
+  DatabasePassword:
+    AllowedPattern: "[a-zA-Z0-9]*"
+    ConstraintDescription: alpha-numeric string
+    Default: 91365335
+    Description: db admin password
+    MaxLength: 128
+    MinLength: 8
+    NoEcho: true
+    Type: String
+
+  DatabaseBackupRetentionPeriod:
+    ConstraintDescription: Retention period ranges from 0 to 35 days. '0' stands for disabled
+    Default: 35
+    Description: database backup retention length
+    MaxValue: 35
+    MinValue: 0
+    Type: Integer
+
+  DatabaseAllocatedStorage:
+    ConstraintDescription: Must be between 5 to 1024Gb
+    Default: 20
+    Description: DB storage
+    MaxValue: 1024
+    MinValue: 5
+    Type: Integer
+
+  DatabaseInstanceClass:
+    AllowedValues:
+      - db.t1.micro
+      - db.t2.micro
+      - db.m1.small
+      - db.m1.medium
+      - db.m1.large
+    ConstraintDescription: must select a valid instamce class
+    Default: db.t1.micro
+    Description: DB insatance class
+    Type: String
+
+  MultiAZDatabase:
+    AllowedValues:
+      - true
+      - false
+    ConstraintDescription: must select eith true or false
+    Default: true
+    Description: to allow multiAZ choose true or else false
+    Type: Boolean
+
+Resources:
+  DatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Database subnet group
+      SubnetIds: 
+      Tags:
+        - Key:
+          Value:
+
+  DatabaseInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: !Ref DatabaseAllocatedStorage
+
+      AllowMajorVersionUpgrade:
+        Description: If true, major version upgrades can be applied during the maintenance window.
+        AllowedValues:
+          - true
+          - false
+        Type: Boolean
+        Default: true
+
+      AssociatedRoles:
+        Description: The AWS Identity and Access Management (IAM) roles associated with the DB instance.
+        Type: String
+        Default:
+
+      AutomaticBackupReplicationRegion:
+        Description: region where the cluster can be hosted
+        Default: us-east-1a
+        Type: String
+
+      AutoMinorVersionUpgrade:
+        Description: A value that indicates whether minor engine upgrades are applied automatically to the DB instance during the maintenance window.
+        Type: Boolean
+        ConstraintDescription: By default minor upgrades are automatically applied unless spedified false.
+        AllowedValues:
+          - true
+          - false
+        Default: true
+
+      AvailabilityZone:
+        Description: Availabilityzones where the cluster can be hosted
+        Default: us-east-1a
+        Type: String
+        AllowedValues:
+          - us-east-1a
+          - us-east-1b
+          - us-east-1c
+
+      BackupRetentionPeriod:
+        ConstraintDescription: Must be a value from 0 to 35. Can't be set to 0 if the DB instance is a source to read replicas
+        Type: Integer
+        Description: O to disable and upto 35 days
+        MaxValue: 35
+        MinValue: 0
+        Default: 30
+
+      CACertificateIdentifier:
+        Type: String
+        Default: cacertificate-arn
+
+      CertificateDetails:
+        CAIdentifier:
+          Description: The CA identifier of the CA certificate used for the DB instance's server certificate.
+          Type: String
+        ValidTill:
+          Description: The expiration date of the DB instances server certificate.
+          Type: String
+
+      CertificateRotationRestart:
+        Description: The DB instance is restarted when you rotate your SSL/TLS certificate. By default it will restart.
+        ConstraintDescription: Set this parameter only if you are not using SSL/TLS to connect to the DB instance.
+        Type: Boolean
+        AllowedValues:
+          - true
+          - false
+        Default: true
+
+      CharacterSetName: utf-8
+
+      CopyTagsToSnapshot:
+        Description: Specifies whether to copy tags from the DB instance to snapshots of the DB instance. By default, tags are not copied.
+        Type: Boolean
+        Default: true
+
+      CustomIAMInstanceProfile:
+        Description: IAM instance profile
+        ConstraintDescription:
+          - The profile must exist in your account.
+          - The profile must have an IAM role that Amazon EC2 has permissions to assume.
+          - The instance profile name and the associated IAM role name must start with the prefix AWSRDSCustom.
+        Type: String
+        Default: IAM-Instance-Profile-name-OR-Arn
+
+      DBClusterIdentifier: String
+      DBClusterSnapshotIdentifier: String
+
+      DBInstanceClass: !Ref DatabaseInstanceClass
+
+      DBInstanceIdentifier:
+        Type: String
+        MinLength: 1
+        MaxLength: 63
+        Default: rds-postgre-db-identifier
+
+      DBName:
+        AllowedPattern: "[a-zA-Z][a-zA-Z0-9_]"
+        MaxLength: 63
+        MinLength: 1
+        Type: String
+        Default: rds-postgre-db
+
+      DBParameterGroupName: 
+        Type: String
+        Default:
+      
+      DBSecurityGroups:
+        Type: String
+        Default:
+      
+      DBSubnetGroupName: 
+        Description: A DB subnet group to associate with the DB instance.
+        Type: String
+        Default:
+      
+      DBSystemId: 
+        Description: The Oracle system identifier (SID), which is the name of the Oracle database instance that manages your database files. If you don't specify a SID, the value defaults to RDSCDB. The Oracle SID is also the name of your CDB.
+        Type: String
+        Default: RDSCDB
+
+      DeleteAutomatedBackups:
+        Description: A value that indicates whether to remove automated backups immediately after the DB instance is deleted.
+        Type: Boolean
+        Default: false
+      
+      DeletionProtection:
+        Description: The database can't be deleted when deletion protection is enabled.
+        Type: Boolean
+        Default: false
+      
+      Domain: String
+      
+      DomainAuthSecretArn: String
+      
+      DomainDnsIps:
+        - String
+      DomainFqdn: String
+      DomainIAMRoleName: String
+      DomainOu: String
+      
+      EnableCloudwatchLogsExports:
+       Description: The list of log types that need to be enabled for exporting to CloudWatch Logs.
+       Default: 
+        - postgresql
+        - upgrade
+      
+      EnableIAMDatabaseAuthentication: 
+        Description: A value that indicates whether to enable mapping of AWS Identity and Access Management (IAM) accounts to database accounts.
+        Type: Boolean
+        Default: true
+      
+      EnablePerformanceInsights: 
+        Description: Specifies whether to enable Performance Insights for the DB instance.
+        Type: Boolean
+        Default: true
+      
+      Endpoint: Endpoint
+      
+      Engine: postgres
+      
+      EngineVersion: "10"
+      
+      Iops: 
+        Description: The number of I/O operations per second (IOPS) that the database provisions. The value must be equal to or greater than 1000.
+        Type: Integer
+        DefaultValue: 1000
+      
+      KmsKeyId:
+        Description: The ARN of the AWS KMS key that's used to encrypt the DB instance
+        Type: String
+        Default: aws-kms-key-arn
+
+      LicenseModel: PostgreSQL - postgresql-license
+      
+      ManageMasterUserPassword: 
+        Description: Specifies whether to manage the master user password with AWS Secrets Manager.
+        Type: Boolean
+        AllowedValues:
+          - true
+          - false
+        Default: true
+      
+      MasterUsername: !Ref DatabaseUser
+
+      MasterUserPassword: !Ref DatabasePassword
+      
+      MasterUserSecret:
+          KmsKeyId: 
+            Type: String
+            Default: kms-key-id
+          SecretArn:
+            Type: String
+            Default: secret-arn
+
+      MaxAllocatedStorage: !Ref DatabaseAllocatedStorage
+      
+      MonitoringInterval:
+        Description: The interval, in seconds, between points when Enhanced Monitoring metrics are collected for the DB instance.
+        ConstraintDescription: If MonitoringRoleArn is specified, then you must set MonitoringInterval to a value other than 0.
+        Type: Integer
+        AllowedValues:
+          - 0
+          - 1
+          - 5
+          - 10
+          - 15
+          - 30
+          - 60
+        Default: 30
+      
+      MonitoringRoleArn:
+        Type: String
+        Default: monitoring-role-arn
+      
+      MultiAZ:
+        Description: Specifies whether the database instance is a Multi-AZ DB instance deployment.
+        ConstraintDescription: You can't set the AvailabilityZone parameter if the MultiAZ parameter is set to true.
+        Type: Boolean
+        Default: false
+      
+      NetworkType: 
+        Description: The network type of the DB instance. The network type is determined by the DBSubnetGroup specified for the DB instance.
+        ConstraintDescription: A DBSubnetGroup can support only the IPv4 protocol or the IPv4 and IPv6 protocols (DUAL).
+        Type: String
+        AllowedValues: 
+          - IPV4
+          - DUAL
+        Default: Dual
+      
+      OptionGroupName: String
+      
+      PerformanceInsightsKMSKeyId:
+        Description: The AWS KMS key identifier for encryption of Performance Insights data. The KMS key identifier is the key ARN, key ID, alias ARN, or alias name for the KMS key.
+        Type: String
+        Default: kms-key-arn
+      
+      PerformanceInsightsRetentionPeriod:
+        Description: The number of days to retain Performance Insights data.
+        ConstraintDescription: valid values 7, (no. of months * 31), 731
+        MinValue: 7
+        Type: Integer
+        Default: 93
+
+      Port:
+        Description: The port number on which the database accepts connections.
+        Type: String
+        AllowedPattern: ^\d*$
+        Default: 5349
+      
+      PreferredBackupWindow: 
+        Description: The daily time range during which automated backups are created if automated backups are enabled
+        Type: String
+        Default: 05:00-06:00
+      
+      PreferredMaintenanceWindow:
+        Description: The weekly time range during which system maintenance can occur, in Universal Coordinated Time (UTC).
+        Type: String
+        Default: Mon:06:00-Mon:06:30
+
+      
+      ProcessorFeatures:
+        - Name: coreCount
+          Value: 4
+        - Name: threadsPerCore
+          Value: 8
+      #PromotionTier: Integer
+      PubliclyAccessible:
+        Description: Indicates whether the DB instance is an internet-facing instance.
+        Type: Boolean
+        Default: false
+       
+      RestoreTime: String
+      SourceDBClusterIdentifier: String
+      SourceDBInstanceAutomatedBackupsArn: String
+      SourceDBInstanceIdentifier: String
+      SourceDbiResourceId: String
+      SourceRegion: String
+      StorageEncrypted: Boolean
+      StorageThroughput: Integer
+
+      StorageType:
+        AllowedValues:
+          - gp2
+          - gp3
+          - io1
+          - standard
+        type: String
+        Default: standard
+
+      Tags:
+        - Key: String
+        - Value: String
+
+      UseDefaultProcessorFeatures: Boolean
+      UseLatestRestorableTime: Boolean
+      
+      VPCSecurityGroups:
+        ConstraintDescription: If you set VPCSecurityGroups, you must not set DBSecurityGroups, and vice versa.
+        Default: !Ref VPC-security-group
